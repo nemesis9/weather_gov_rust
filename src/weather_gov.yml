@@ -1,0 +1,64 @@
+
+log_section:
+  LOGNAME: "WEATHER"
+  FILENAME: "weather.log"
+  ROTATE_SIZE: 10000000
+  ROTATE_FILES: 10
+  JOURNAL: False
+  LOGDIR: "./"
+  LEVEL: "WARNING"
+  USE_CONSOLE: True
+
+host_section:
+  BASE_URL: "https://api.weather.gov"
+  STATIONS_URL: "https://api.weather.gov/stations/"
+
+db_section:
+   "host"              : "localhost"
+   "user"              : "weather_user"
+   "password"          : 'weather_pass'
+   "database"          : "weather_gov"
+   "station_table"     : "stations_cpp"
+   "observation_table" : "observations_cpp"
+
+stations_section:
+  "Williams AFB/Chandl"                : "KIWA"
+  "Phoenix/Sky Harbor"                 : "KPHX"
+#  "Casa Grande Municipal Airport"      : "KCGZ"
+#  "Chandler Municipal Airport"         : "KCHD"
+#  "Williams/Clark Memorial Airport"    : "KCMR"
+#  "Davis-Monthan AFB"                  : "KDMA"
+#  "Douglas Bisbee Intl Airpot"         : "KDUG"
+#  "Deer Valley/Phoenix"                : "KDVT"
+#  "Mesa/Falcon Field"                  : "KFFZ"
+#  "Fort Huachuca/Libby"                : "KFHU"
+#  "Flagstaff (amos)"                   : "KFLG"
+#  "Gila Bend (aaf)"                    : "KGBN"
+#  "Grand Canyon Park"                  : "KGCN"
+#  "Grand Canyon, Valle Airpot"         : "K40G"
+#  "Glendale"                           : "KGEU"
+#  "Goodyear Municipal"                 : "KGYR"
+#  "Bull Head City"                     : "KIFP"
+#  "Kingman (amos)"                     : "KIGM"
+#  "Winslow (aut)"                      : "KINW"
+#  "Luke AFB/Phoenix"                   : "KLUF"
+#  "Yuma Mcas"                          : "KNYL"
+#  "Nogales Intl Airport"               : "KOLS"
+#  "Payson Airport"                     : "KPAN"
+#  "Page Muni (amos)"                   : "KPGA"
+#  "Prescot/Love Fld"                   : "KPRC"
+#  "Window Rock (was P34)"              : "KRQE"
+#  "Safford Municipal"                  : "KSAD"
+#  "Scottsdale Muni"                    : "KSDL"
+#  "Sedona Airport"                     : "KSEZ"
+#  "St. Johns Air Park"                 : "KSJN"
+#  "Show Low Municipal"                 : "KSOW"
+#  "Tucson Intl Airport"                : "KTUS"
+#  "WhiteRiver Airport"                 : "KWTR"
+#  "Yuma"                               : "KYUM"
+
+
+parameters_section:
+    OBS_INTERVAL_SECS                  : "300" 
+
+
