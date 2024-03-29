@@ -1,6 +1,12 @@
 
 #!/bin/bash
 
+if [ $# -eq 0 ]
+    then
+        echo "Usage ./build.sh <run | build>"
+        exit 1
+fi
+
 DIR="$(dirname "$0")"
 echo "DIR: $DIR"
 cd src
