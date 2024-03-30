@@ -9,14 +9,15 @@
 //     4.  For each station, periodically get observations from weather.gov
 //
 use std::collections::HashMap;
-use futures::executor::block_on;
+//use futures::executor::block_on;
+use async_std::task;
 
 use log::{error, warn, info, debug};
 mod config;
 mod station;
 
-#[tokio::main]
-async fn main() {
+//#[tokio::main]
+fn main() {
     // Start logging
     colog::init();
     info!("Starting weather_gov");
@@ -53,15 +54,15 @@ async fn main() {
     for station in &mut station_iter {
         println!("Station id {}, station_url: {}", station.station_identifier, station.station_url);
         println!("Station observation url: {}", station.observation_url);
-        let json = block_on(station.get_station_json()); 
+        let res = task::block_on(station.get_station_json()); 
+        match res {
+            Ok(_) => {},
+            Err(err) => panic!("Could not get station json {:?}", err), 
+        }
 
+        //println!("Station json: {}", json);
         println!("Station json: {}", station.json_data);
 
     }
-    //for station in &mut station_iter {
-    //    println!("Station id {}, station_url: {}", station.station_identifier, station.station_url);
-    //    println!("Station json: {}", station.json_data);
-
-    //}
 
 }
