@@ -7,12 +7,13 @@ if [ $# -eq 0 ]
         exit 1
 fi
 
-DIR="$(dirname "$0")"
-echo "DIR: $DIR"
+FILEPATH="$(readlink -f "$0")"
+BASEDIR="$(dirname "$FILEPATH")"
+echo "BASEDIR: $BASEDIR"
 cd src
 
 if cargo "$@"; then
-    [ -d "$DIR/target/debug" ] && cp "$DIR/src/weather_gov.yml" "$DIR/target/debug/"
-    [ -d "$DIR/target/release" ] && cp "$DIR/weather_gov.yml" "$DIR/target/release/"
+    [ -d "$BASEDIR/target/debug" ] && cp "$BASEDIR/src/weather_gov.yml" "$BASEDIR/target/debug/"
+    [ -d "$BASEDIR/target/release" ] && cp "$BASEDIR/weather_gov.yml" "$BASEDIR/target/release/"
 fi
 

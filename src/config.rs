@@ -6,11 +6,11 @@ use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-   log_section:        HashMap<String, String>,
-   host_section:       HashMap<String, String>,
-   db_section:         HashMap<String, String>,
-   stations_section:   HashMap<String, String>,
-   parameters_section: HashMap<String, String>,
+   pub log_section:        HashMap<String, String>,
+   pub host_section:       HashMap<String, String>,
+   pub db_section:         HashMap<String, String>,
+   pub stations_section:   HashMap<String, String>,
+   pub parameters_section: HashMap<String, String>,
 }
 
 
@@ -20,4 +20,6 @@ pub fn get_config() -> Result<Config, Box<dyn std::error::Error>> {
     //println!("Read YAML config: {:?}", _c);
     Ok(_c)
 }
+
+
 
