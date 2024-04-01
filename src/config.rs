@@ -15,9 +15,10 @@ pub struct Config {
 
 
 pub fn get_config() -> Result<Config, Box<dyn std::error::Error>> {
-    let _f = std::fs::File::open("./weather_gov.yml").expect("Could not open yml config");
-    let _c: Config = serde_yaml::from_reader(_f).expect("Could not create config from yml");
-    //println!("Read YAML config: {:?}", _c);
+    let _f = std::fs::File::open("./weather_gov.yml").expect("Could not open yml config. \
+           Please create and use a valid weather_gov.yml.");
+    let _c: Config = serde_yaml::from_reader(_f).expect("Could not create config from yml. \
+           Please validate the yaml config file.");
     Ok(_c)
 }
 

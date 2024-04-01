@@ -1,11 +1,25 @@
 use reqwest;
-//use futures::executor::block_on;
+//use serde::{Deserialize, Serialize};
+use serde_json::{Value};
+use serde_yaml::from_str;
+use log::{error, warn, info, debug};
+
+
+//#[derive(Serialize, Deserialize)]
+//struct Geo {
+//    id: String
+//}
 
 pub struct Station {
     pub station_identifier:  String,
     pub station_url:         String,
     pub json_data:           String,
     pub observation_url:     String,
+    pub longitude:           f64,
+    pub latitude:            f64,
+    pub elevation_meters:    f64,
+    pub elevation_feet:      f64,
+
 
 }
 
@@ -17,29 +31,55 @@ impl Station {
         let surl = stations_url.clone();
         Self {
             station_identifier: id,
-            //station_url: stations_url.to_string() + "/" + id,
             station_url: format!("{}{}", stations_url, sid),
             json_data: "".to_string(),
             observation_url: format!("{}{}/observations/latest", surl, sid),
+            longitude: 0.0,
+            latitude: 0.0,
+            elevation_meters: 0.0,
+            elevation_feet: 0.0,
         }
     }
 
 
-    //pub async fn get_station_json(url: String) -> Result<String, Box<dyn std::error::Error>> {
     pub async fn get_station_json(&mut self) -> Result<String, reqwest::Error> {
+        // api.weather.gov requires User-Agent be set, but reqwest does not
+        // set one. See weather.gov.
         let client = reqwest::Client::new();
         let resp = client.get(&self.station_url)
             .header("Content-Type", "application/json")
-            .header("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:124.0) Gecko/20100101 Firefox/124.0")
+            .header("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:124.0)\
+                                            Gecko/20100101 Firefox/124.0")
             .send().await?;
 
         let rtext = resp.text().await?;
         self.json_data = rtext.clone();
-        //println!("body = {rtext:?}");
         Ok(rtext)
-
     }
+
+    pub fn parse_json(&mut self, json: &str) -> Result<(), serde_json::error::Error> {
+
+        println!("parse json called");
+
+        //** This works but dayum!
+        let v: Value = serde_json::from_str(json)?;
+
+        println!("Station long: {:?}", v["geometry"]["coordinates"][0]);
+        let l = &v["geometry"]["coordinates"][0].as_f64();
+
+        let long = match l {
+          Some(f) => f,
+          None  => &0.0
+        };
+
+        self.longitude = *long;
+        println!("self longitude: {:?}", self.longitude);
+
+        Ok(())
+    }
+
 }
+
 
 // use rust reqwest to get the json
 //https://docs.rs/reqwest/latest/reqwest/
