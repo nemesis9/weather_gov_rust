@@ -1,7 +1,7 @@
 use reqwest;
 //use serde::{Deserialize, Serialize};
 use serde_json::{Value};
-use serde_yaml::from_str;
+//use serde_yaml::from_str;
 use log::{error, warn, info, debug};
 
 
@@ -11,14 +11,15 @@ use log::{error, warn, info, debug};
 //}
 
 pub struct Station {
-    pub station_identifier:  String,
-    pub station_url:         String,
-    pub json_data:           String,
-    pub observation_url:     String,
-    pub longitude:           f64,
-    pub latitude:            f64,
-    pub elevation_meters:    f64,
-    pub elevation_feet:      f64,
+    pub station_identifier:      String,
+    pub station_url:             String,
+    pub json_station_data:       String,
+    //pub json_station_serde_val:  serde_json::Value,
+    pub observation_url:         String,
+    pub longitude:               f64,
+    pub latitude:                f64,
+    pub elevation_meters:        f64,
+    pub elevation_feet:          f64,
 
 
 }
@@ -32,7 +33,8 @@ impl Station {
         Self {
             station_identifier: id,
             station_url: format!("{}{}", stations_url, sid),
-            json_data: "".to_string(),
+            json_station_data: "".to_string(),
+            //json_station_serde_val: None,
             observation_url: format!("{}{}/observations/latest", surl, sid),
             longitude: 0.0,
             latitude: 0.0,
@@ -53,30 +55,58 @@ impl Station {
             .send().await?;
 
         let rtext = resp.text().await?;
-        self.json_data = rtext.clone();
+        self.json_station_data = rtext.clone();
         Ok(rtext)
     }
 
-    pub fn parse_json(&mut self, json: &str) -> Result<(), serde_json::error::Error> {
+    pub fn parse_json_longitude(&mut self, json: &str) -> Result<(), serde_json::error::Error> {
 
-        println!("parse json called");
+        debug!("parse json longitude called");
 
-        //** This works but dayum!
         let v: Value = serde_json::from_str(json)?;
 
-        println!("Station long: {:?}", v["geometry"]["coordinates"][0]);
-        let l = &v["geometry"]["coordinates"][0].as_f64();
+        debug!("Station long: {:?}", v["geometry"]["coordinates"][0]);
+        let l = v["geometry"]["coordinates"][0].as_f64();
 
         let long = match l {
           Some(f) => f,
-          None  => &0.0
+          None  => 0.0
         };
 
-        self.longitude = *long;
-        println!("self longitude: {:?}", self.longitude);
-
+        self.longitude = long;
+        if self.longitude == 0.0 {
+            warn!("WARNING: Parsing error: station {:?} longitude \
+                  set to zero.", self.station_identifier);
+        } else {
+            info!("self longitude: {:?}", self.longitude);
+        }
         Ok(())
     }
+
+    pub fn parse_json_latitude(&mut self, json: &str) -> Result<(), serde_json::error::Error> {
+
+        debug!("parse json latitude called");
+
+        let v: Value = serde_json::from_str(json)?;
+
+        debug!("Station lat: {:?}", v["geometry"]["coordinates"][1]);
+        let l = v["geometry"]["coordinates"][1].as_f64();
+
+        let long = match l {
+          Some(f) => f,
+          None  => 0.0
+        };
+
+        self.latitude = long;
+        if self.latitude == 0.0 {
+            warn!("WARNING: Parsing error: station {:?} latitude \
+                  set to zero.", self.station_identifier);
+        } else {
+            info!("self latitude: {:?}", self.latitude);
+        }
+        Ok(())
+    }
+
 
 }
 

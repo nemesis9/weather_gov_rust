@@ -62,13 +62,19 @@ fn main() {
             Err(err) => panic!("Could not get station json {:?}", err),
         };
 
-        info!("Returned Station json: {}", json);
-        info!("Station json in station object: {}", station.json_data);
+        debug!("Returned Station json: {}", json);
+        debug!("Station json in station object: {}", station.json_station_data);
 
-        let res = station.parse_json(&json);
+        let res = station.parse_json_longitude(&json);
         match res {
-            Ok(e) => e,
-            Err(e) => { println!("Err: {:?}", e); },
+            Ok(e) => { debug!("main: parse_json_longitude result: {:?}", e); } ,
+            Err(e) => { error!("Err: {:?}", e); },
+        }
+
+        let res = station.parse_json_latitude(&json);
+        match res {
+            Ok(e) => { debug!("main: parse_json_latitude result: {:?}", e); } ,
+            Err(e) => { error!("Err: {:?}", e); },
         }
 
     }
