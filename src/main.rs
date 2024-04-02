@@ -22,16 +22,11 @@ fn main() {
     colog::init();
     info!("Starting weather_gov");
 
-    // Get the config
-    let config = match config::get_config() {
-        Ok(_result) => _result,
-        Err(error) => panic!("Error: {:?}", error),
-    };
+    let config = config::Config::get_config();
     info!("YAML config: {:?}", config);
 
     let host: HashMap<String, String> = config.host_section;
     debug!("Host config: {:?}", host);
-    //let stations_url: <String> = host["STATIONS_URL"];
     let stations_url = match host.get("STATIONS_URL") {
         Some(url) => url,
         _ => panic!("Config is missing STATIONS_URL."),
