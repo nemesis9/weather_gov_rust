@@ -1,16 +1,13 @@
 use reqwest;
 //use serde::{Deserialize, Serialize};
-use serde_json::{Value};
-use log::{error, warn, info, debug};
+//use serde_json::{Value};
+//use log::{error, warn, info, debug};
+use log::{warn, info, debug};
 
-
-//#[derive(Serialize, Deserialize)]
-//struct Geo {
-//    id: String
-//}
 
 pub struct Station {
     pub station_identifier:      String,
+    pub station_name:            String,
     pub station_url:             String,
     pub json_station_data:       String,
     pub json_station_serde_val:  serde_json::Value,
@@ -19,7 +16,6 @@ pub struct Station {
     pub latitude:                f64,
     pub elevation_meters:        f64,
     pub elevation_feet:          f64,
-
 
 }
 
@@ -31,6 +27,7 @@ impl Station {
         let surl = stations_url.clone();
         Self {
             station_identifier: id,
+            station_name: "".to_string(),
             station_url: format!("{}{}", stations_url, sid),
             json_station_data: "".to_string(),
             json_station_serde_val: serde_json::Value::Null ,
@@ -65,15 +62,46 @@ impl Station {
         Ok(rtext)
     }
 
-    pub fn parse_json_longitude(&mut self) -> Result<(), serde_json::error::Error> {
+    pub fn set_station_data(&mut self) {
+        self.parse_json_station_name();
+        self.parse_json_longitude();
+        self.parse_json_latitude();
+        self.parse_json_elevation();
+    }
+
+    fn parse_json_station_name(&mut self) {
+
+        debug!("parse json station name called");
+
+        //Returns an Option, the value if successful, None otherwise
+        let n = self.json_station_serde_val["properties"]["name"].as_str();
+
+        let nm: String = match n {
+            Some(f) => String::from(f),
+            None => self.station_identifier.clone(),
+        };
+
+        if nm == self.station_identifier {
+            warn!("Could not get name from json, \
+                  setting name to station_identifier: {:?}", self.station_identifier);
+        } else {
+            self.station_name = nm;
+        }
+
+        info!("Station name: {:?}", self.station_name);
+        info!("Station identifier: {:?}", self.station_identifier);
+    }
+
+    fn parse_json_longitude(&mut self) {
 
         debug!("parse json longitude called");
 
+        //Returns an Option, the value if successful, None otherwise
         let l = self.json_station_serde_val["geometry"]["coordinates"][0].as_f64();
 
         let long = match l {
-          Some(f) => f,
-          None  => 0.0
+            Some(f) => f,
+            None  => 0.0
         };
 
         self.longitude = long;
@@ -81,20 +109,20 @@ impl Station {
             warn!("WARNING: Parsing error: station {:?} longitude \
                   set to zero.", self.station_identifier);
         } else {
-            info!("self longitude: {:?}", self.longitude);
+            info!("Station longitude: {:?}", self.longitude);
         }
-        Ok(())
     }
 
-    pub fn parse_json_latitude(&mut self) -> Result<(), serde_json::error::Error> {
+    fn parse_json_latitude(&mut self) {
 
         debug!("parse json latitude called");
 
+        //Returns an Option, the value if successful, None otherwise
         let l = self.json_station_serde_val["geometry"]["coordinates"][1].as_f64();
 
         let lat = match l {
-          Some(f) => f,
-          None  => 0.0
+            Some(f) => f,
+            None  => 0.0
         };
 
         self.latitude = lat;
@@ -102,20 +130,20 @@ impl Station {
             warn!("WARNING: Parsing error: station {:?} latitude \
                   set to zero.", self.station_identifier);
         } else {
-            info!("self latitude: {:?}", self.latitude);
+            info!("Station latitude: {:?}", self.latitude);
         }
-        Ok(())
     }
 
-    pub fn parse_json_elevation(&mut self) -> Result<(), serde_json::error::Error> {
+    fn parse_json_elevation(&mut self) {
 
         debug!("parse json elevation called");
 
+        //Returns an Option, the value if successful, None otherwise
         let e = self.json_station_serde_val["properties"]["elevation"]["value"].as_f64();
 
         let ele = match e {
-          Some(f) => f,
-          None  => 0.0
+            Some(f) => f,
+            None  => 0.0
         };
 
         self.elevation_meters = ele;
@@ -124,11 +152,11 @@ impl Station {
             warn!("WARNING: Parsing error: station {:?} latitude \
                   set to zero.", self.station_identifier);
         } else {
-            info!("self elevation_meters: {:?}", self.elevation_meters);
-            info!("self elevation_feet: {:?}", self.elevation_feet);
+            info!("Station elevation_meters: {:?}", self.elevation_meters);
+            info!("Station elevation_feet: {:?}", self.elevation_feet);
         }
-        Ok(())
     }
+
 
 } // impl Station
 

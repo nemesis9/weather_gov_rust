@@ -12,9 +12,10 @@ use std::collections::HashMap;
 // task allows main to not be an async function
 use async_std::task;
 
-use log::{error, warn, info, debug};
+use log::{info, debug};
 mod config;
 mod station;
+mod db;
 
 
 fn main() {
@@ -22,6 +23,7 @@ fn main() {
     colog::init();
     info!("Starting weather_gov");
 
+    // Get the config
     let config = config::Config::get_config();
     info!("YAML config: {:?}", config);
 
@@ -60,23 +62,14 @@ fn main() {
         debug!("Returned Station json: {}", json);
         info!("Station json in station object: {}", station.json_station_data);
 
-        let res = station.parse_json_longitude();
-        match res {
-            Ok(e) => { debug!("main: parse_json_longitude result: {:?}", e); } ,
-            Err(e) => { error!("Err: {:?}", e); },
-        }
+        station.set_station_data();
 
-        let res = station.parse_json_latitude();
-        match res {
-            Ok(e) => { debug!("main: parse_json_latitude result: {:?}", e); } ,
-            Err(e) => { error!("Err: {:?}", e); },
-        }
-
-        let res = station.parse_json_elevation();
-        match res {
-            Ok(e) => { debug!("main: parse_json_elevation result: {:?}", e); } ,
-            Err(e) => { error!("Err: {:?}", e); },
-        }
     }
+
+    // Need to crank up our db here
+    let db_sect: HashMap<String, String> = config.db_section;
+    debug!("Host config: {:?}", db_sect);
+    let db = &mut db::Db::new(db_sect);
+    db.create_tables();
 
 }
