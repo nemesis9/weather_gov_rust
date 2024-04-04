@@ -1,6 +1,5 @@
 
 use std::collections::HashMap;
-use mysql::*;
 use mysql::prelude::*;
 
 

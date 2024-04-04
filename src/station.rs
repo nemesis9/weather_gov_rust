@@ -6,16 +6,18 @@ use log::{warn, info, debug};
 
 
 pub struct Station {
-    pub station_identifier:      String,
-    pub station_name:            String,
-    pub station_url:             String,
-    pub json_station_data:       String,
-    pub json_station_serde_val:  serde_json::Value,
-    pub observation_url:         String,
-    pub longitude:               f64,
-    pub latitude:                f64,
-    pub elevation_meters:        f64,
-    pub elevation_feet:          f64,
+    pub station_identifier:          String,
+    pub station_name:                String,
+    pub station_url:                 String,
+    pub json_station_data:           String,
+    pub json_station_serde_val:      serde_json::Value,
+    pub observation_url:             String,
+    pub latest_observation_data:     String,
+    pub json_observation_serde_val:  serde_json::Value,
+    pub longitude:                   f64,
+    pub latitude:                    f64,
+    pub elevation_meters:            f64,
+    pub elevation_feet:              f64,
 
 }
 
@@ -32,6 +34,8 @@ impl Station {
             json_station_data: "".to_string(),
             json_station_serde_val: serde_json::Value::Null ,
             observation_url: format!("{}{}/observations/latest", surl, sid),
+            latest_observation_data: "".to_string(),
+            json_observation_serde_val:  serde_json::Value::Null,
             longitude: 0.0,
             latitude: 0.0,
             elevation_meters: 0.0,
@@ -155,6 +159,29 @@ impl Station {
             info!("Station elevation_meters: {:?}", self.elevation_meters);
             info!("Station elevation_feet: {:?}", self.elevation_feet);
         }
+    }
+
+    pub async fn get_latest_observation_data(&mut self)  -> Result<String, reqwest::Error> {
+        // api.weather.gov requires User-Agent be set, but reqwest does not
+        // set one. See weather.gov.
+        let client = reqwest::Client::new();
+        let resp = client.get(&self.observation_url)
+            .header("Content-Type", "application/json")
+            .header("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:124.0)\
+                                            Gecko/20100101 Firefox/124.0")
+            .send().await?;
+
+        let rtext = resp.text().await?;
+        self.latest_observation_data = rtext.clone();
+        // Need to match here, not use ?, because the error type is not reqwest::Error
+        // If we cannot get the station meta json, we won't be able to create a db record,
+        //   so we panic. Another reason we need to match.
+        self.json_observation_serde_val =
+            match serde_json::from_str(&self.latest_observation_data) {
+                Ok(v) => v,
+                Err(e) => panic!("Could not parse json observation data: {:?}", e),
+        };
+        Ok(rtext)
     }
 
 

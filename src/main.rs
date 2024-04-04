@@ -63,7 +63,6 @@ fn main() {
         info!("Station json in station object: {}", station.json_station_data);
 
         station.set_station_data();
-
     }
 
     // Need to crank up our db here
@@ -72,4 +71,15 @@ fn main() {
     let db = &mut db::Db::new(db_sect);
     db.create_tables();
 
+    // We need a new station list iterator here, we consumed the earlier one
+    let mut station_iter = station_list.iter_mut();
+    for station in &mut station_iter {
+        let res = task::block_on(station.get_latest_observation_data());
+        let json = match res {
+            Ok(r) => r,
+            Err(e) => format!("Bad Request {:?}", e),
+        };
+
+        info!("Returned observation json: {}", json);
+    }
 }
