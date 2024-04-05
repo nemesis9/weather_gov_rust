@@ -1,7 +1,5 @@
 
 use std::collections::HashMap;
-//use mysql::*;
-//use mysql::prelude::*;
 use sqlx::{Pool, MySql, Error, MySqlPool};
 use async_std::task;
 
@@ -52,13 +50,14 @@ impl Db {
 
             Ok(pool) => {
                 println!("Connected to database successfully.");
-                //let query = sqlx::query("CREATE TABLE IF NOT EXISTS 
-                //station_rust (call_id VARCHAR(5) PRIMARY KEY, name VARCHAR(80), latitude_deg 
-                //FLOAT, longitude_deg FLOAT, elevation_m FLOAT, url VARCHAR(80))").execute(&pool).await.unwrap();
+
                 let query_str_st =  format!("CREATE TABLE IF NOT EXISTS {} (call_id VARCHAR(5) 
                     PRIMARY KEY, name VARCHAR(80), latitude_deg FLOAT, longitude_deg FLOAT, 
                     elevation_m FLOAT, url VARCHAR(80))", self.station_table);
-                let query_st = sqlx::query(query_str_st.as_str()).execute(&pool).await.unwrap();
+                //let query_st = sqlx::query(query_str_st.as_str())
+                //    .execute(&pool).await.unwrap();
+                let query_st = sqlx::query(query_str_st.as_str())
+                    .execute(&pool).await.expect("Fatal: could not create station metadata table");
                 println!("Query result create station table: {:?}", query_st);
 
                 let query_str_obs = format!("CREATE TABLE IF NOT EXISTS {} (station_id 
@@ -68,14 +67,19 @@ impl Db {
                 wind_gust_mi_h FLOAT, baro_pres_pa FLOAT, baro_pres_inHg FLOAT,
                 rel_humidity FLOAT, PRIMARY KEY (station_id, timestamp_UTC))", 
                 self.observation_table);
+                //let query_st_obs = sqlx::query(query_str_obs.as_str())
+                //    .execute(&pool).await.unwrap();
                 let query_st_obs = sqlx::query(query_str_obs.as_str())
-                    .execute(&pool).await.unwrap();
+                    .execute(&pool).await.expect("Fatal: could not create station observation table");
                 println!("Query result create observation table: {:?}", query_st_obs);
 
                 Ok(pool)
             }
         }
     }
+
+
+
 
         //let opts = Opts::try_from(pool_str.as_str());
         //let url = get_opts();
