@@ -69,7 +69,7 @@ fn main() {
     let db_sect: HashMap<String, String> = config.db_section;
     debug!("Host config: {:?}", db_sect);
     let db = &mut db::Db::new(db_sect);
-    db.create_tables();
+    task::block_on(db.create_tables());
 
     // We need a new station list iterator here, we consumed the earlier one
     let mut station_iter = station_list.iter_mut();

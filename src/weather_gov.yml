@@ -18,8 +18,8 @@ db_section:
    "user"              : "weather_user"
    "password"          : 'weather_pass'
    "database"          : "weather_gov"
-   "station_table"     : "stations_rust"
-   "observation_table" : "observations_rust"
+   "station_table"     : "station_rust"
+   "observation_table" : "observation_rust"
 
 stations_section:
   "Williams AFB/Chandl"                : "KIWA"
