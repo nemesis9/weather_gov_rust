@@ -1,9 +1,50 @@
 use reqwest;
-//use serde::{Deserialize, Serialize};
-//use serde_json::{Value};
-//use log::{error, warn, info, debug};
-use log::{warn, info, debug};
+use log::{warn, debug};
+use std::fmt;
 
+//#[allow(non_snake_case)]
+//#[derive(Debug)]
+pub struct StationRecord {
+    pub call_id:         String,
+    pub name:            String,
+    pub latitude_deg:    f64,
+    pub longitude_deg:   f64,
+    pub elevation_m:     f64,
+    pub url:             String,
+}
+
+impl fmt::Debug for StationRecord {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("StationRecord")
+            .field("\n        call_id", &self.call_id)
+            .field("\n        name", &self.name)
+            .field("\n        latitude_deg", &self.latitude_deg)
+            .field("\n        longitude_deg", &self.longitude_deg)
+            .field("\n        elevation_m", &self.elevation_m)
+            .field("\n        url", &self.url)
+            .finish()
+    }
+}
+
+
+#[allow(non_snake_case)]
+pub struct ObservationRecord {
+    pub station_id:       String,
+    pub timestamp_UTC:    String,
+    pub temperature_C:    f64,
+    pub temperature_F:    f64,
+    pub dewpoint_C:       f64,
+    pub dewpoint_F:       f64,
+    pub description:      String,
+    pub wind_dir:         f64,
+    pub wind_spd_km_h:    f64,
+    pub wind_spd_mi_h:    f64,
+    pub wind_gust_km_h:   f64,
+    pub wind_gust_mi_h:   f64,
+    pub baro_pres_pa:     f64,
+    pub baro_pres_inHg:   f64,
+    pub rel_humidity:     f64,
+}
 
 pub struct Station {
     pub station_identifier:          String,
@@ -92,8 +133,8 @@ impl Station {
             self.station_name = nm;
         }
 
-        info!("Station name: {:?}", self.station_name);
-        info!("Station identifier: {:?}", self.station_identifier);
+        //info!("Station name: {:?}", self.station_name);
+        //info!("Station identifier: {:?}", self.station_identifier);
     }
 
     fn parse_json_longitude(&mut self) {
@@ -113,7 +154,7 @@ impl Station {
             warn!("WARNING: Parsing error: station {:?} longitude \
                   set to zero.", self.station_identifier);
         } else {
-            info!("Station longitude: {:?}", self.longitude);
+            debug!("Station longitude: {:?}", self.longitude);
         }
     }
 
@@ -134,7 +175,7 @@ impl Station {
             warn!("WARNING: Parsing error: station {:?} latitude \
                   set to zero.", self.station_identifier);
         } else {
-            info!("Station latitude: {:?}", self.latitude);
+            debug!("Station latitude: {:?}", self.latitude);
         }
     }
 
@@ -156,12 +197,23 @@ impl Station {
             warn!("WARNING: Parsing error: station {:?} latitude \
                   set to zero.", self.station_identifier);
         } else {
-            info!("Station elevation_meters: {:?}", self.elevation_meters);
-            info!("Station elevation_feet: {:?}", self.elevation_feet);
+            debug!("Station elevation_meters: {:?}", self.elevation_meters);
+            debug!("Station elevation_feet: {:?}", self.elevation_feet);
         }
     }
 
-    pub async fn get_latest_observation_data(&mut self)  -> Result<String, reqwest::Error> {
+    pub fn get_station_record(&self) -> StationRecord {
+        StationRecord {
+            call_id:         self.station_identifier.clone(),
+            name:            self.station_name.clone(),
+            latitude_deg:    self.latitude,
+            longitude_deg:   self.longitude,
+            elevation_m:     self.elevation_meters,
+            url:             self.station_url.clone(),
+        }
+    }
+
+    pub async fn get_latest_observation_data(&mut self)  -> Result<ObservationRecord, reqwest::Error> {
         // api.weather.gov requires User-Agent be set, but reqwest does not
         // set one. See weather.gov.
         let client = reqwest::Client::new();
@@ -174,45 +226,95 @@ impl Station {
         let rtext = resp.text().await?;
         self.latest_observation_data = rtext.clone();
         // Need to match here, not use ?, because the error type is not reqwest::Error
-        // If we cannot get the station meta json, we won't be able to create a db record,
-        //   so we panic. Another reason we need to match.
         self.json_observation_serde_val =
             match serde_json::from_str(&self.latest_observation_data) {
                 Ok(v) => v,
                 Err(e) => panic!("Could not parse json observation data: {:?}", e),
         };
-        Ok(rtext)
+
+        let obs = self.preprocess_observation();
+        Ok(obs)
     }
 
+    fn preprocess_observation(&mut self) -> ObservationRecord {
+        let mut obs = ObservationRecord {
+            station_id:       self.station_identifier.clone(),
+            timestamp_UTC:    "".to_string(),
+            temperature_C:    0.0,
+            temperature_F:    0.0,
+            dewpoint_C:       0.0,
+            dewpoint_F:       0.0,
+            description:      "".to_string().clone(),
+            wind_dir:         0.0,
+            wind_spd_km_h:    0.0,
+            wind_spd_mi_h:    0.0,
+            wind_gust_km_h:   0.0,
+            wind_gust_mi_h:   0.0,
+            baro_pres_pa:     0.0,
+            baro_pres_inHg:   0.0,
+            rel_humidity:     0.0,
+        };
+        let res =  self.json_observation_serde_val["properties"]["timestamp"].as_str();
+        match res {
+            Some(v) => { obs.timestamp_UTC = v.to_string(); },
+            None => { obs.timestamp_UTC = "".to_string(); },
+        }
+
+        let res =  self.json_observation_serde_val["properties"]["temperature"]["value"].as_f64();
+        match res {
+            Some(v) => { obs.temperature_C = v; obs.temperature_F = v * (9.0/5.0) + 32.0; },
+            None => { obs.temperature_C = -999.99; obs.temperature_F = -999.99; },
+        }
+
+        let res =  self.json_observation_serde_val["properties"]["dewpoint"]["value"].as_f64();
+        match res {
+            Some(v) => { obs.dewpoint_C = v; obs.dewpoint_F = v * (9.0/5.0) + 32.0; }
+            None => { obs.dewpoint_C = -999.99; obs.dewpoint_F = -999.99; },
+        }
+
+
+        let res =  self.json_observation_serde_val["properties"]["textDescription"].as_str();
+        match res {
+            Some(v) => { obs.description = v.to_string(); },
+            None => { obs.description = "".to_string(); },
+        }
+
+
+        let res =  self.json_observation_serde_val["properties"]["windDirection"]["value"].as_f64();
+        match res {
+            Some(v) => { obs.wind_dir = v; },
+            None => { obs.wind_dir = -999.99; },
+        }
+
+        let res =  self.json_observation_serde_val["properties"]["windSpeed"]["value"].as_f64();
+        match res {
+            Some(v) => { obs.wind_spd_km_h = v; obs.wind_spd_mi_h = v * 0.6213712 },
+            None => { obs.wind_spd_km_h = -999.99; obs.wind_spd_mi_h = -999.99},
+        }
+
+        let res =  self.json_observation_serde_val["properties"]["windGust"]["value"].as_f64();
+        match res {
+            Some(v) => { obs.wind_gust_km_h = v; obs.wind_gust_mi_h = v * 0.6213712 },
+            None => { obs.wind_gust_km_h = -999.99; obs.wind_gust_mi_h = -999.99},
+        }
+
+        let res =  self.json_observation_serde_val["properties"]["barometricPressure"]["value"].as_f64();
+        match res {
+            Some(v) => { obs.baro_pres_pa = v; obs.baro_pres_inHg = v * 0.00029529983071445; },
+            None => { obs.baro_pres_pa = -999.99; obs.baro_pres_inHg = -999.99},
+        }
+
+        let res =  self.json_observation_serde_val["properties"]["relativeHumidity"]["value"].as_f64();
+        match res {
+            Some(v) => { obs.rel_humidity = v; },
+            None => { obs.rel_humidity = -999.99 ; },
+        }
+
+
+        obs
+    }
 
 } // impl Station
 
 
-// use rust reqwest to get the json
-//https://docs.rs/reqwest/latest/reqwest/
 
-// Then, See here for deserializing JSON to an object, this uses serde
-//https://stackoverflow.com/questions/75771097/safely-and-efficiently-processing-a-json-web-service-response-in-rust
-//
-//For example, what if a field is usually a number, but is sometimes a non-numeric string, or is omitted entirely?
-//#[derive(Deserialize)]
-//#[serde(untagged)]
-//enum NumberOrString {
-//    Number(f64),
-//    String(String),
-//}
-
-//#[derive(Deserialize)]
-//struct ApiResponse {
-//    pub some_value: Option<NumberOrString>,
-//}
-//
-//
-//Now you can handle any of the three cases:
-//
-//match response.some_value {
-//    None => { /* Value was null or missing */ }
-//    Some(NumberOrString::Number(n)) => { /* Value was numeric */ }
-//    Some(NumberOrString::String(s)) => { /* Value was a string */ }
-//}
-//

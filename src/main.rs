@@ -9,6 +9,8 @@
 //     4.  For each station, periodically get observations from weather.gov
 //
 use std::collections::HashMap;
+use std::{thread, time};
+
 // task allows main to not be an async function
 use async_std::task;
 
@@ -16,7 +18,14 @@ use log::{info, debug};
 mod config;
 mod station;
 mod db;
+use chrono::prelude::{DateTime, Utc};
+use std::time::SystemTime;
 
+fn iso8601(st: &std::time::SystemTime) -> String {
+    let dt: DateTime<Utc> = st.clone().into();
+    format!("{}", dt.format("%+"))
+    // formats like "2001-07-08T00:34:60.026490+09:30"
+}
 
 fn main() {
     // Start logging
@@ -34,6 +43,18 @@ fn main() {
         _ => panic!("Config is missing STATIONS_URL."),
     };
 
+    let parms: HashMap<String, String> = config.parameters_section;
+    let interval = match parms.get("OBS_INTERVAL_SECS") {
+        Some(inter) => inter,
+        None  => "300",
+    };
+
+    let obs_interval = match interval.parse::<u64>()  {
+        Ok(o) => o,
+        Err(_) => 300,
+    };
+    println!("obs_interval: {:?}", obs_interval);
+
     // Get the stations from the config
     let stations: HashMap<String, String> = config.stations_section;
     info!("Stations config: {:?}", stations);
@@ -47,24 +68,6 @@ fn main() {
         station_list.push(station);
     }
 
-    // Get the station json meta data
-    let mut station_iter = station_list.iter_mut();
-    for station in &mut station_iter {
-        info!("Station id {}, station_url: {}", station.station_identifier,
-                                                   station.station_url);
-        info!("Station observation url: {}", station.observation_url);
-        let res = task::block_on(station.get_station_json());
-        let json = match res {
-            Ok(r) => r,
-            Err(err) => panic!("Could not get station json {:?}", err),
-        };
-
-        debug!("Returned Station json: {}", json);
-        info!("Station json in station object: {}", station.json_station_data);
-
-        station.set_station_data();
-    }
-
     // Need to crank up our db here
     let db_sect: HashMap<String, String> = config.db_section;
     debug!("Host config: {:?}", db_sect);
@@ -72,18 +75,70 @@ fn main() {
     let res = task::block_on(db.create_tables());
     match res {
         Ok(r) => r,
-        Err(err) => panic!("Could not create database tables: {:?}", err),
+        Err(err) => panic!("Fatal: could not create database tables: {:?}", err),
     };
 
-    // We need a new station list iterator here, we consumed the earlier one
+
+    // Get the station json meta data
     let mut station_iter = station_list.iter_mut();
     for station in &mut station_iter {
-        let res = task::block_on(station.get_latest_observation_data());
+        //info!("Station id {}, station_url: {}", station.station_identifier,
+        //                                           station.station_url);
+        //info!("Station observation url: {}", station.observation_url);
+        let res = task::block_on(station.get_station_json());
         let json = match res {
             Ok(r) => r,
-            Err(e) => format!("Bad Request {:?}", e),
+            Err(err) => panic!("Could not get station json {:?}", err),
         };
 
-        info!("Returned observation json: {}", json);
+        debug!("Returned Station json: {}", json);
+        //info!("Station json in station object: {}", station.json_station_data);
+
+        station.set_station_data();
+        // We need to get the station record and add to database if not already there
+        let station_record = station.get_station_record();
+        info!("Station record: {:?}", station_record);
+        let res = task::block_on(db.put_station_record(station_record));
+        info!("Put station record result: {:?}", res);
+
+    }
+
+
+    // We need a new station list iterator here, we consumed the earlier one
+    // We need to go through our stations, get latest observation, and put in db
+    let mut i: u64 = 0;
+    loop {
+        let now = SystemTime::now();
+        let t8601 = iso8601(&now);
+        info!("\n\nLOOP ITERATION: {}  TIME: {}", i, t8601);
+        i+=1;
+        let mut station_iter = station_list.iter_mut();
+        for station in &mut station_iter {
+            let res = task::block_on(station.get_latest_observation_data());
+            let obs = match res {
+                Ok(r) => r,
+                Err(e) => panic!("Get latest observation failed: {:?}", e),
+            };
+
+            //info!("Returned observation json: {}", json);
+            let res = task::block_on(db.put_observation_record(obs));
+            match res {
+                Ok(r) => {
+                    if r.contains("Duplicate") {
+                        info!("Put observation record result for station {}: {:?}",
+                              station.station_identifier, &r);
+                        info!("Ignoring Duplicate Observation Record for station {}",
+                              station.station_identifier);
+                    } else {
+                        info!("Put observation record result for station {}: {:?}",
+                              station.station_identifier, r);
+                    }
+                },
+                Err(err) => { println!("Err: {:?}", err); }
+            }
+        }
+
+        let interval = time::Duration::from_secs(obs_interval);
+        thread::sleep(interval);
     }
 }
