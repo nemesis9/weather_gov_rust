@@ -1,13 +1,30 @@
 
-// Project:        weather_gov
-// Description:    for given stations, get observations
-//
-// Outline:
-//     1.  Parse yaml config
-//     2.  create db
-//     3.  Get station list from config
-//     4.  For each station, periodically get observations from weather.gov
-//
+//!
+//! Project:        weather_gov
+//!
+//! Description:    Uses the weather_gov api.
+//!
+//!                 For stations given in a config file, periodically
+//!                 get the latest observation, and store in a local
+//!                 mysql database.
+//!                 It assumes the database weather_gov exists. 
+//!
+//!
+//! Outline:
+//!
+//!     1.  Parse yml config, weather_gov.yml.
+//!     2.  Create the local database tables.
+//!     3.  Get station list from config.
+//!     4.  For each station, periodically get observations from weather.gov.
+//!
+//! Primary Crates Used:
+//!
+//!     1. serde_yaml, serde_json.
+//!     2. reqwest.
+//!     3. colog.
+//!     4. sqlx
+//!
+//!
 use std::collections::HashMap;
 use std::{thread, time};
 
@@ -21,12 +38,30 @@ mod db;
 use chrono::prelude::{DateTime, Utc};
 use std::time::SystemTime;
 
+/// main::iso8601.
+///  converts a SystemTime to a iso 8601 string
+///
+/// # Arguments
+///*'st' - SystemTime
+///
+/// # Return
+///
+/// ISO 8601 string
 fn iso8601(st: &std::time::SystemTime) -> String {
     let dt: DateTime<Utc> = st.clone().into();
     format!("{}", dt.format("%+"))
     // formats like "2001-07-08T00:34:60.026490+09:30"
 }
 
+/// main.
+///  orchestrates the program flow
+///
+/// # Arguments
+/// None
+///
+/// # Return
+///
+/// None 
 fn main() {
     // Start logging
     colog::init();
@@ -107,6 +142,7 @@ fn main() {
     // We need a new station list iterator here, we consumed the earlier one
     // We need to go through our stations, get latest observation, and put in db
     let mut i: u64 = 0;
+    let interval = time::Duration::from_secs(obs_interval);
     loop {
         let now = SystemTime::now();
         let t8601 = iso8601(&now);
@@ -138,7 +174,6 @@ fn main() {
             }
         }
 
-        let interval = time::Duration::from_secs(obs_interval);
         thread::sleep(interval);
     }
 }

@@ -2,8 +2,7 @@ use reqwest;
 use log::{warn, debug};
 use std::fmt;
 
-//#[allow(non_snake_case)]
-//#[derive(Debug)]
+/// Represents a database station record.
 pub struct StationRecord {
     pub call_id:         String,
     pub name:            String,
@@ -13,6 +12,7 @@ pub struct StationRecord {
     pub url:             String,
 }
 
+/// Enables debugging a database station record.
 impl fmt::Debug for StationRecord {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("StationRecord")
@@ -27,6 +27,7 @@ impl fmt::Debug for StationRecord {
 }
 
 
+/// Represents database station observation record.
 #[allow(non_snake_case)]
 pub struct ObservationRecord {
     pub station_id:       String,
@@ -46,6 +47,7 @@ pub struct ObservationRecord {
     pub rel_humidity:     f64,
 }
 
+/// Implmentation of a weather_gov station.
 pub struct Station {
     pub station_identifier:          String,
     pub station_name:                String,
@@ -63,8 +65,19 @@ pub struct Station {
 }
 
 
+/// Implmentation of methods for struct Station.
 impl Station {
 
+    ///  Creates a new station instance.
+    ///
+    /// # Arguments
+    ///
+    ///*'id'-the station id
+    ///*'stations_url' - the main statons_url
+    ///
+    /// # Return
+    ///
+    /// Station instance
     pub fn new(id: String, stations_url: String) -> Station {
         let sid = id.clone();
         let surl = stations_url.clone();
@@ -85,6 +98,15 @@ impl Station {
     }
 
 
+    ///  Gets the station meta data.
+    ///
+    /// # Arguments
+    ///
+    ///*'self'-the object instance
+    ///
+    /// # Return
+    ///
+    /// Result
     pub async fn get_station_json(&mut self) -> Result<String, reqwest::Error> {
         // api.weather.gov requires User-Agent be set, but reqwest does not
         // set one. See weather.gov.
@@ -107,6 +129,17 @@ impl Station {
         Ok(rtext)
     }
 
+
+    ///  Auxiliary function to set data
+    ///         on the station instance.
+    ///
+    /// # Arguments
+    ///
+    ///*'self'-the station instance
+    ///
+    /// # Return
+    ///
+    /// None
     pub fn set_station_data(&mut self) {
         self.parse_json_station_name();
         self.parse_json_longitude();
@@ -114,6 +147,15 @@ impl Station {
         self.parse_json_elevation();
     }
 
+    ///  Get station name from station json.
+    ///
+    /// # Arguments
+    ///
+    ///*'self'-the station instance
+    ///
+    /// # Return
+    ///
+    /// None
     fn parse_json_station_name(&mut self) {
 
         debug!("parse json station name called");
@@ -137,6 +179,15 @@ impl Station {
         //info!("Station identifier: {:?}", self.station_identifier);
     }
 
+    ///  Get station longitude from station json.
+    ///
+    /// # Arguments
+    ///
+    ///*'self'-the station instance
+    ///
+    /// # Return
+    ///
+    /// None
     fn parse_json_longitude(&mut self) {
 
         debug!("parse json longitude called");
@@ -158,6 +209,15 @@ impl Station {
         }
     }
 
+    ///  Get station latitude from station json.
+    ///
+    /// # Arguments
+    ///
+    ///*'self'-the station instance
+    ///
+    /// # Return
+    ///
+    /// None
     fn parse_json_latitude(&mut self) {
 
         debug!("parse json latitude called");
@@ -179,6 +239,15 @@ impl Station {
         }
     }
 
+    ///  Get station elevation from station json.
+    ///
+    /// # Arguments
+    ///
+    ///*'self'-the station instance
+    ///
+    /// # Return
+    ///
+    /// None
     fn parse_json_elevation(&mut self) {
 
         debug!("parse json elevation called");
@@ -202,6 +271,16 @@ impl Station {
         }
     }
 
+    ///  Get station record suitable for 
+    ///      db station record.
+    ///
+    /// # Arguments
+    ///
+    ///*'self'-the station instance
+    ///
+    /// # Return
+    ///
+    /// StationRecord
     pub fn get_station_record(&self) -> StationRecord {
         StationRecord {
             call_id:         self.station_identifier.clone(),
@@ -213,6 +292,16 @@ impl Station {
         }
     }
 
+    ///  Get station observation record suitable for
+    ///      db station observation record
+    ///
+    /// # Arguments
+    ///
+    ///*'self'-the station instance
+    ///
+    /// # Return
+    ///
+    /// ObservationRecord
     pub async fn get_latest_observation_data(&mut self)  -> Result<ObservationRecord, reqwest::Error> {
         // api.weather.gov requires User-Agent be set, but reqwest does not
         // set one. See weather.gov.
@@ -236,6 +325,17 @@ impl Station {
         Ok(obs)
     }
 
+    ///   Helper for get_latest_observation_data,
+    ///      adds items that are not natively in the json
+    ///      and handles null values.
+    ///
+    /// # Arguments
+    ///
+    ///*'self'-the station instance
+    ///
+    /// # Return
+    ///
+    /// ObservationRecord
     fn preprocess_observation(&mut self) -> ObservationRecord {
         let mut obs = ObservationRecord {
             station_id:       self.station_identifier.clone(),

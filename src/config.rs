@@ -4,6 +4,7 @@ use serde_yaml::{self};
 use std::collections::HashMap;
 
 
+/// Implmentation of a weather_gov config.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
    pub log_section:        HashMap<String, String>,
@@ -13,10 +14,17 @@ pub struct Config {
    pub parameters_section: HashMap<String, String>,
 }
 
+
 impl Config {
 
-    //pub fn get_config() -> Result<Config, Box<dyn std::error::Error>> {
-    //
+    ///  Gets the config from yml file.
+    ///
+    /// # Arguments
+    /// None
+    ///
+    /// # Return
+    ///
+    /// Config instance
     // We must panic if we cannot get the config -> the file exists and is valid yaml
     pub fn get_config() -> Config {
         let _f = std::fs::File::open("./weather_gov.yml").expect("Could not open yml config. \
