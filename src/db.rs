@@ -8,6 +8,7 @@ use crate::station::ObservationRecord;
 /// Represents a db instance.
 pub struct Db {
     pub host:              String,
+    pub port:              String,
     pub user:              String,
     pub password:          String,
     pub database:          String,
@@ -33,6 +34,7 @@ impl Db {
 
         Self {
             host:               cfg["host"].clone(),
+            port:               cfg["port"].clone(),
             user:               cfg["user"].clone(),
             password:           cfg["password"].clone(),
             database:           cfg["database"].clone(),
@@ -65,8 +67,8 @@ impl Db {
     /// Db Pool
     pub async fn create_tables(&mut self) -> Result<Pool<MySql>, sqlx::Error>  {
 
-        let pool_str = format!("mysql://{}:{}@{}:3306/{}", self.user, self.password,
-                                self.host, self.database);
+        let pool_str = format!("mysql://{}:{}@{}:{}/{}", self.user, self.password,
+                                self.host, self.port, self.database);
 
         //println!("pool_str: {:?}", pool_str);
 
@@ -117,10 +119,8 @@ impl Db {
     /// Result
     pub async fn put_station_record(&mut self, rec: StationRecord) -> Result<String, sqlx::Error> {
 
-        let pool_str = format!("mysql://{}:{}@{}:3306/{}", self.user, self.password,
-                                self.host, self.database);
-
-        //println!("pool_str: {:?}", pool_str);
+        let pool_str = format!("mysql://{}:{}@{}:{}/{}", self.user, self.password,
+                                self.host, self.port, self.database);
 
         let result = task::block_on(Db::connect(pool_str.as_str()));
 
@@ -130,7 +130,8 @@ impl Db {
                 return Err(err);
             },
             Ok(pool) => {
-                let result = sqlx::query("REPLACE INTO station_rust (call_id, name, latitude_deg, longitude_deg, elevation_m, url) VALUES (?, ?, ?, ?, ?, ?)")
+                let query_str = format!("REPLACE INTO {} (call_id, name, latitude_deg, longitude_deg, elevation_m, url) VALUES (?, ?, ?, ?, ?, ?)", self.station_table); 
+                let result = sqlx::query(query_str.as_str())
                 .bind(rec.call_id)
                 .bind(rec.name)
                 .bind(rec.latitude_deg)
@@ -161,10 +162,8 @@ impl Db {
     /// Result
     pub async fn put_observation_record(&mut self, rec: ObservationRecord) -> Result<String, sqlx::Error> {
 
-        let pool_str = format!("mysql://{}:{}@{}:3306/{}", self.user, self.password,
-                                self.host, self.database);
-
-        //debug!("put_obs_record: pool_str: {:?}", pool_str);
+        let pool_str = format!("mysql://{}:{}@{}:{}/{}", self.user, self.password,
+                                self.host, self.port, self.database);
 
         let result = task::block_on(Db::connect(pool_str.as_str()));
 
@@ -174,11 +173,12 @@ impl Db {
                 return Err(err);
             },
             Ok(pool) => {
-                let result = sqlx::query("INSERT INTO observation_rust  (station_id,
+                let query_str = format!("INSERT INTO {} (station_id,
                  timestamp_UTC, temperature_C, temperature_F, dewpoint_C,
                  dewpoint_F, description, wind_dir, wind_spd_km_h, wind_spd_mi_h,
                  wind_gust_km_h, wind_gust_mi_h, baro_pres_pa, baro_pres_inHg,
-                 rel_humidity) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                 rel_humidity) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", self.observation_table);
+                 let result = sqlx::query(query_str.as_str())
                 .bind(rec.station_id)
                 .bind(rec.timestamp_UTC)
                 .bind(rec.temperature_C)
