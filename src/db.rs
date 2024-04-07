@@ -198,6 +198,10 @@ impl Db {
                 .await;
                 //.unwrap();
 
+                // Don't unwrap the result above, it will cause a crash on error.
+                // The most common error is Duplicate record, which is not fatal.
+                // All errors should be passed back to the caller and let caller
+                // decide what to do.  
                 let rstring = format!("Sucess: result: {:?}", result);
                 Ok(rstring)
             }

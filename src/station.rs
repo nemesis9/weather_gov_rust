@@ -174,9 +174,6 @@ impl Station {
         } else {
             self.station_name = nm;
         }
-
-        //info!("Station name: {:?}", self.station_name);
-        //info!("Station identifier: {:?}", self.station_identifier);
     }
 
     ///  Get station longitude from station json.

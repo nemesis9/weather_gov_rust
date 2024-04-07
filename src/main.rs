@@ -17,6 +17,14 @@
 //!     3.  Get station list from config.
 //!     4.  For each station, periodically get observations from weather.gov.
 //!
+//! Running:
+//!
+//!     Use the build.sh script from top level like this: ./build.sh run.
+//!     Cargo run in the top level dir will not work, but will work from the src dir.  
+//!     This is because weather_gov.yml needs to be in the current directory with the
+//!     executable
+//!
+//!
 //! Primary Crates Used:
 //!
 //!     1. serde_yaml, serde_json.
