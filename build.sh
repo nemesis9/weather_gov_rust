@@ -21,6 +21,9 @@ fi
 `cp "$BASEDIR/src/weather_gov.yml" "$BASEDIR/target/debug/"`
 `cp "$BASEDIR/src/weather_gov.yml" "$BASEDIR/target/release/"`
 
+# cd to the source dir containing weather_gov.yml
+cd src
+
 cargo "$@"
 
 #if [ "$1" == "run" ]; then
