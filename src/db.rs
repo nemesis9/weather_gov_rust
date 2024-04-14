@@ -17,7 +17,6 @@ pub struct Db {
 
 }
 
-
 /// Implementation for db instance.
 impl Db {
 
@@ -31,7 +30,6 @@ impl Db {
     ///
     /// Db instance
     pub fn new(cfg: HashMap<String, String>) -> Db {
-
         Self {
             host:               cfg["host"].clone(),
             port:               cfg["port"].clone(),
@@ -106,7 +104,7 @@ impl Db {
         }
     }
 
-    ///  Adds a station to the weather_gov 
+    ///  Adds a station to the weather_gov
     ///      Db station table.
     ///
     /// # Arguments
@@ -130,7 +128,7 @@ impl Db {
                 return Err(err);
             },
             Ok(pool) => {
-                let query_str = format!("REPLACE INTO {} (call_id, name, latitude_deg, longitude_deg, elevation_m, url) VALUES (?, ?, ?, ?, ?, ?)", self.station_table); 
+                let query_str = format!("REPLACE INTO {} (call_id, name, latitude_deg, longitude_deg, elevation_m, url) VALUES (?, ?, ?, ?, ?, ?)", self.station_table);
                 let result = sqlx::query(query_str.as_str())
                 .bind(rec.call_id)
                 .bind(rec.name)
@@ -149,7 +147,7 @@ impl Db {
 
     }
 
-    ///  Adds a station observation record to 
+    ///  Adds a station observation record to
     ///     the weather_gov db.
     ///
     /// # Arguments
@@ -201,8 +199,8 @@ impl Db {
                 // Don't unwrap the result above, it will cause a crash on error.
                 // The most common error is Duplicate record, which is not fatal.
                 // All errors should be passed back to the caller and let caller
-                // decide what to do.  
-                let rstring = format!("Sucess: result: {:?}", result);
+                // decide what to do.
+                let rstring = format!("Success: result: {:?}", result);
                 Ok(rstring)
             }
         }
@@ -212,3 +210,23 @@ impl Db {
 } // impl Db
 
 
+//struct Sqlpool {
+//    pool:  Pool<MySql>,
+//    set:   bool
+//}
+
+//impl Sqlpool {
+//
+//    fn new (db: Db) -> Sqlpool {
+//
+//      let connect_str = format!("mysql://{}:{}@{}:{}/{}", db.user, db.password,
+//                                db.host, db.port, db.database);
+//
+//      MySqlPool::connect(connect_str).await;
+//    }
+//
+//    fn get() -> Pool<MySql> {
+//
+//    }
+//
+//}

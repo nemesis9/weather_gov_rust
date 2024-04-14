@@ -2,6 +2,9 @@ use reqwest;
 use log::{warn, debug};
 use std::fmt;
 
+type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
+type GenericResult<T> = Result<T, GenericError>;
+
 /// Represents a database station record.
 pub struct StationRecord {
     pub call_id:         String,
@@ -298,8 +301,14 @@ impl Station {
     ///
     /// # Return
     ///
-    /// ObservationRecord
-    pub async fn get_latest_observation_data(&mut self)  -> Result<ObservationRecord, reqwest::Error> {
+    /// ObservationRecord or Error
+    ///    generic error is used as there are multiple error types and dont want to panic.
+    ///    This should just return to caller.
+    ///    Failing to get an observation is not fatal.
+    ///    GenericResult accomplishes what is wanted, but may lose info about what
+    ///    exacty failed.  On the bright side, this call rarely, if ever, fails.
+    //pub async fn get_latest_observation_data(&mut self)  -> Result<ObservationRecord, reqwest::Error> {
+    pub async fn get_latest_observation_data(&mut self)  -> GenericResult<ObservationRecord> {
         // api.weather.gov requires User-Agent be set, but reqwest does not
         // set one. See weather.gov.
         let client = reqwest::Client::new();
@@ -311,12 +320,11 @@ impl Station {
 
         let rtext = resp.text().await?;
         self.latest_observation_data = rtext.clone();
-        // Need to match here, not use ?, because the error type is not reqwest::Error
+
+        // serde_json::from_str does not emit a reqwest::Error on failure.
+        // By default, cannot use ? operator, but using a GenericResult allows this.
         self.json_observation_serde_val =
-            match serde_json::from_str(&self.latest_observation_data) {
-                Ok(v) => v,
-                Err(e) => panic!("Could not parse json observation data: {:?}", e),
-        };
+            serde_json::from_str(&self.latest_observation_data)?;
 
         let obs = self.preprocess_observation();
         Ok(obs)
