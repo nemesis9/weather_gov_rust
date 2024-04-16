@@ -1,5 +1,5 @@
 use reqwest;
-use log::{warn, debug};
+use log::{error, warn, debug};
 use std::fmt;
 use std::io;
 
@@ -345,7 +345,7 @@ impl Station {
             .send().await {
              Ok(resp) => resp,
              Err(e) =>  {
-                    println!("Error getting latest observation: {:?}", e);
+                    error!("Error getting latest observation: {:?}", e);
                     let io_error = io::Error::new(io::ErrorKind::Other,
                                    format!("get observation response failed: {:?}", e));
                     return Err(GenericError::from(io_error));
@@ -357,7 +357,7 @@ impl Station {
 
              Ok(rtext) => rtext,
              Err(e) =>  {
-                    println!("Error getting observation response: {:?}", e);
+                    error!("Error getting observation response: {:?}", e);
                     let io_error = io::Error::new(io::ErrorKind::Other,
                                    format!("get observation response text failed: {:?}", e));
                     return Err(GenericError::from(io_error));
@@ -374,7 +374,7 @@ impl Station {
             Ok(obs) => obs,
 
             Err(e) =>  {
-                    println!("Error getting observation response: {:?}", e);
+                    error!("Error getting observation response: {:?}", e);
                     let io_error = io::Error::new(io::ErrorKind::Other,
                                    format!("get observation json failed: {:?}", e));
                     return Err(GenericError::from(io_error));

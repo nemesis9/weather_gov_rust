@@ -4,6 +4,7 @@ use sqlx::{Pool, MySql, Error, MySqlPool};
 use async_std::task;
 use crate::station::StationRecord;
 use crate::station::ObservationRecord;
+use log::{info};
 
 /// Represents a db instance.
 pub struct Db {
@@ -45,7 +46,7 @@ impl Db {
             //      not much can be done anyway.
             db_pool:            task::block_on(Db::connect(format!("mysql://{}:{}@{}:{}/{}",
                                 cfg["user"], cfg["password"], cfg["host"], cfg["port"],
-                                cfg["database"]).as_str())).unwrap(),
+                                cfg["database"]).as_str())).expect("Could not connect to database"),
         }
     }
 
@@ -58,7 +59,7 @@ impl Db {
     /// # Return
     ///
     /// Db Pool
-    pub async fn connect(cpath: &str) -> Result<Pool<MySql>, Error> {
+    async fn connect(cpath: &str) -> Result<Pool<MySql>, Error> {
         return MySqlPool::connect(cpath).await;
     }
 
@@ -79,7 +80,7 @@ impl Db {
             elevation_m FLOAT, url VARCHAR(80))", self.station_table);
         let query_st = sqlx::query(query_str_st.as_str())
             .execute(&self.db_pool).await.expect("Fatal: could not create station metadata table");
-        println!("Query result create station table: {:?}", query_st);
+        info!("Query result create station table: {:?}", query_st);
 
         let query_str_obs = format!("CREATE TABLE IF NOT EXISTS {} (station_id
         VARCHAR(20), timestamp_UTC VARCHAR(40), temperature_C FLOAT, temperature_F FLOAT,
@@ -91,7 +92,7 @@ impl Db {
         let query_st_obs = sqlx::query(query_str_obs.as_str())
            .execute(&self.db_pool).await.expect("Fatal: could not create station \
                                                 observation table");
-        println!("Query result create observation table: {:?}", query_st_obs);
+        info!("Query result create observation table: {:?}", query_st_obs);
 
         Ok(())
     }

@@ -97,7 +97,7 @@ fn main() {
         Ok(o) => o,
         Err(_) => 300,
     };
-    println!("obs_interval: {:?}", obs_interval);
+    info!("obs_interval: {:?}", obs_interval);
 
     // Get the stations from the config
     let stations: HashMap<String, String> = config.stations_section;
