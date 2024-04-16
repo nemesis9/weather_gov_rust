@@ -159,33 +159,36 @@ fn main() {
         i+=1;
         let mut station_iter = station_list.iter_mut();
         for station in &mut station_iter {
-            info!("\nGETTING STATION OBSERVATION FOR {:?}", station.station_identifier);
+            info!("\nGETTING STATION OBSERVATION FOR {:?}, {:?}", 
+                  station.station_identifier, station.station_name);
             let res = task::block_on(station.get_latest_observation_data());
             let obs = match res {
                 Ok(r) => r,
                 Err(e) => { warn!("Failed getting latest observation for station \
-                                  {:?}: {:?}", station.station_identifier, e);
+                                  {:?}, {:?}: {:?}", station.station_identifier, 
+                                  station.station_name, e);
                             continue;
                           }
             };
 
-            info!("Returned observation json for station: {:?} {:?}",
-                      station.station_identifier, obs);
+            info!("Returned observation json for station: {:?}, {:?}: {:?}",
+                      station.station_identifier, station.station_name, obs);
             let res = task::block_on(db.put_observation_record(obs));
             match res {
                 Ok(r) => {
                     if r.contains("Duplicate") {
-                        info!("Put observation record result for station {}: {:?}",
-                              station.station_identifier, &r);
-                        info!("Ignoring Duplicate Observation Record for station {}",
-                              station.station_identifier);
+                        info!("Put observation record result for station {:?}, {:?}: {:?}",
+                              station.station_identifier, station.station_name, &r);
+                        info!("Ignoring Duplicate Observation Record for station {:?}, {:?}",
+                              station.station_identifier, station.station_name);
                     } else {
-                        info!("Put observation record result for station {}: {:?}",
-                              station.station_identifier, r);
+                        info!("Put observation record result for station {:?}, {:?}: {:?}",
+                              station.station_identifier, station.station_name, r);
                     }
                 },
                 Err(err) => { error!("Error putting latest observation from station \
-                                     {:?}: {:?}", station.station_identifier, err); }
+                                     {:?}, {:?}: {:?}", station.station_identifier, 
+                                     station.station_name, err); }
             }
         }
 
