@@ -1,6 +1,7 @@
 use reqwest;
 use log::{warn, debug};
 use std::fmt;
+use std::io;
 
 type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
 type GenericResult<T> = Result<T, GenericError>;
@@ -48,6 +49,27 @@ pub struct ObservationRecord {
     pub baro_pres_pa:     f64,
     pub baro_pres_inHg:   f64,
     pub rel_humidity:     f64,
+}
+
+/// Enables debugging a database observation record.
+impl fmt::Debug for ObservationRecord {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("ObservationRecord")
+            .field("\n        station_id", &self.station_id)
+            .field("\n        timestamp_UTC", &self.timestamp_UTC)
+            .field("\n        temperature_C", &self.temperature_C)
+            .field("\n        temperature_F", &self.temperature_F)
+            .field("\n        description", &self.description)
+            .field("\n        wind_dir", &self.wind_dir)
+            .field("\n        wind_spd_km_h", &self.wind_spd_km_h)
+            .field("\n        wind_spd_mi_h", &self.wind_spd_mi_h)
+            .field("\n        wind_gust_km_h", &self.wind_gust_km_h)
+            .field("\n        wind_gust_mi_h", &self.wind_gust_mi_h)
+            .field("\n        baro_pres_pa", &self.baro_pres_pa)
+            .field("\n        baro_pres_inHg", &self.baro_pres_inHg)
+            .field("\n        rel_humidity", &self.rel_humidity)
+            .finish()
+    }
 }
 
 /// Implmentation of a weather_gov station.
@@ -271,7 +293,7 @@ impl Station {
         }
     }
 
-    ///  Get station record suitable for 
+    ///  Get station record suitable for
     ///      db station record.
     ///
     /// # Arguments
@@ -306,26 +328,57 @@ impl Station {
     ///    This should just return to caller.
     ///    Failing to get an observation is not fatal.
     ///    GenericResult accomplishes what is wanted, but may lose info about what
-    ///    exacty failed.  On the bright side, this call rarely, if ever, fails.
-    //pub async fn get_latest_observation_data(&mut self)  -> Result<ObservationRecord, reqwest::Error> {
+    ///    exacty failed. However, looks like I can wrap the actual error in the Generic Error
+    ///    using format!.
+    ///    On the bright side, this call rarely, if ever, fails.
     pub async fn get_latest_observation_data(&mut self)  -> GenericResult<ObservationRecord> {
         // api.weather.gov requires User-Agent be set, but reqwest does not
         // set one. See weather.gov.
         let client = reqwest::Client::new();
-        let resp = client.get(&self.observation_url)
+        let resp = match client.get(&self.observation_url)
             .header("Content-Type", "application/json")
             .header("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:124.0)\
                                             Gecko/20100101 Firefox/124.0")
-            .send().await?;
+            .send().await {
+             Ok(resp) => resp,
+             Err(e) =>  {
+                    println!("Error getting latest observation: {:?}", e);
+                    let io_error = io::Error::new(io::ErrorKind::Other,
+                                   format!("get observation response failed: {:?}", e));
+                    return Err(GenericError::from(io_error));
+                    },
 
-        let rtext = resp.text().await?;
+            };
+
+        let rtext = match resp.text().await {
+
+             Ok(rtext) => rtext,
+             Err(e) =>  {
+                    println!("Error getting observation response: {:?}", e);
+                    let io_error = io::Error::new(io::ErrorKind::Other,
+                                   format!("get observation response text failed: {:?}", e));
+                    return Err(GenericError::from(io_error));
+                    },
+
+        };
         self.latest_observation_data = rtext.clone();
 
         // serde_json::from_str does not emit a reqwest::Error on failure.
         // By default, cannot use ? operator, but using a GenericResult allows this.
-        self.json_observation_serde_val =
-            serde_json::from_str(&self.latest_observation_data)?;
+        //self.json_observation_serde_val
+        //    serde_json::from_str(&self.latest_observation_data)?;
+        let json_obs_serde = match  serde_json::from_str(&self.latest_observation_data) {
+            Ok(obs) => obs,
 
+            Err(e) =>  {
+                    println!("Error getting observation response: {:?}", e);
+                    let io_error = io::Error::new(io::ErrorKind::Other,
+                                   format!("get observation json failed: {:?}", e));
+                    return Err(GenericError::from(io_error));
+                    },
+        };
+
+        self.json_observation_serde_val = json_obs_serde;
         let obs = self.preprocess_observation();
         Ok(obs)
     }

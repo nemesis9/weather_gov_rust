@@ -7,7 +7,7 @@
 //!                 For stations given in a config file, periodically
 //!                 get the latest observation, and store in a local
 //!                 mysql database.
-//!                 It assumes the database weather_gov exists. 
+//!                 It assumes the database weather_gov exists.
 //!
 //!
 //! Outline:
@@ -20,7 +20,7 @@
 //! Running:
 //!
 //!     Use the build.sh script from top level like this: ./build.sh run.
-//!     Cargo run in the top level dir will not work, but will work from the src dir.  
+//!     Cargo run in the top level dir will not work, but will work from the src dir.
 //!     This is because weather_gov.yml needs to be in the current directory with the
 //!     executable
 //!
@@ -39,7 +39,7 @@ use std::{thread, time};
 // task allows main to not be an async function
 use async_std::task;
 
-use log::{info, debug};
+use log::{error, warn, info, debug};
 mod config;
 mod station;
 mod db;
@@ -69,11 +69,12 @@ fn iso8601(st: &std::time::SystemTime) -> String {
 ///
 /// # Return
 ///
-/// None 
+/// None
 fn main() {
     // Start logging
     colog::init();
-    info!("Starting weather_gov");
+    info!("Starting \
+           weather_gov");
 
     // Get the config
     let config = config::Config::get_config();
@@ -158,31 +159,33 @@ fn main() {
         i+=1;
         let mut station_iter = station_list.iter_mut();
         for station in &mut station_iter {
-            //let res = task::block_on(station.get_latest_observation_data());
-            //let obs = match res {
-            //    Ok(r) => r,
-            //    Err(e) => station::ObservationRecord {},
-            //};
-            if let Ok(obs) = task::block_on(station.get_latest_observation_data()) {
+            info!("\nGETTING STATION OBSERVATION FOR {:?}", station.station_identifier);
+            let res = task::block_on(station.get_latest_observation_data());
+            let obs = match res {
+                Ok(r) => r,
+                Err(e) => { warn!("Failed getting latest observation for station \
+                                  {:?}: {:?}", station.station_identifier, e);
+                            continue;
+                          }
+            };
 
-                //info!("Returned observation json: {}", json);
-                let res = task::block_on(db.put_observation_record(obs));
-                match res {
-                    Ok(r) => {
-                        if r.contains("Duplicate") {
-                            info!("Put observation record result for station {}: {:?}",
-                                  station.station_identifier, &r);
-                            info!("Ignoring Duplicate Observation Record for station {}",
-                                  station.station_identifier);
-                        } else {
-                            info!("Put observation record result for station {}: {:?}",
-                                  station.station_identifier, r);
-                        }
-                    },
-                    Err(err) => { println!("Err: {:?}", err); }
-                }
-            } else {
-                println!("Warning: could not get observation from station {}:", station.station_identifier);
+            info!("Returned observation json for station: {:?} {:?}",
+                      station.station_identifier, obs);
+            let res = task::block_on(db.put_observation_record(obs));
+            match res {
+                Ok(r) => {
+                    if r.contains("Duplicate") {
+                        info!("Put observation record result for station {}: {:?}",
+                              station.station_identifier, &r);
+                        info!("Ignoring Duplicate Observation Record for station {}",
+                              station.station_identifier);
+                    } else {
+                        info!("Put observation record result for station {}: {:?}",
+                              station.station_identifier, r);
+                    }
+                },
+                Err(err) => { error!("Error putting latest observation from station \
+                                     {:?}: {:?}", station.station_identifier, err); }
             }
         }
 
