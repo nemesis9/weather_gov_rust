@@ -151,6 +151,9 @@ impl Station {
             Ok(v) => v,
             Err(e) => panic!("Could not parse json station data: {:?}", e),
         };
+
+        self.set_station_data();
+
         Ok(rtext)
     }
 

@@ -138,7 +138,7 @@ fn main() {
         debug!("Returned Station json: {}", json);
         //info!("Station json in station object: {}", station.json_station_data);
 
-        station.set_station_data();
+        //station.set_station_data();
         // We need to get the station record and add to database if not already there
         let station_record = station.get_station_record();
         info!("Station record: {:?}", station_record);
@@ -159,8 +159,10 @@ fn main() {
         i+=1;
         let mut station_iter = station_list.iter_mut();
         for station in &mut station_iter {
-            info!("\nGETTING STATION OBSERVATION FOR {:?}, {:?}", 
-                  station.station_identifier, station.station_name);
+            info!("\nGETTING STATION OBSERVATION FOR {:?}, {:?}, latitude {:?}  \
+                  longitude {:?}, elevation {:?} meters", station.station_identifier, 
+                  station.station_name, station.latitude, station.longitude,
+                  station.elevation_meters);
             let res = task::block_on(station.get_latest_observation_data());
             let obs = match res {
                 Ok(r) => r,
