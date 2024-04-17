@@ -471,7 +471,6 @@ impl Station {
             None => { obs.rel_humidity = -999.99 ; },
         }
 
-
         obs
     }
 

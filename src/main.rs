@@ -80,6 +80,7 @@ fn main() {
     let config = config::Config::get_config();
     info!("YAML config: {:?}", config);
 
+    // Get the stations url for the stations later on
     let host: HashMap<String, String> = config.host_section;
     debug!("Host config: {:?}", host);
     let stations_url = match host.get("STATIONS_URL") {
@@ -87,6 +88,8 @@ fn main() {
         _ => panic!("Config is missing STATIONS_URL."),
     };
 
+    // Get the polling interval - how often to get station
+    //                            observations
     let parms: HashMap<String, String> = config.parameters_section;
     let interval = match parms.get("OBS_INTERVAL_SECS") {
         Some(inter) => inter,
@@ -126,20 +129,14 @@ fn main() {
     // Get the station json meta data
     let mut station_iter = station_list.iter_mut();
     for station in &mut station_iter {
-        //info!("Station id {}, station_url: {}", station.station_identifier,
-        //                                           station.station_url);
-        //info!("Station observation url: {}", station.observation_url);
         let res = task::block_on(station.get_station_json());
         let json = match res {
             Ok(r) => r,
             Err(err) => panic!("Could not get station json {:?}", err),
         };
-
         debug!("Returned Station json: {}", json);
-        //info!("Station json in station object: {}", station.json_station_data);
 
-        //station.set_station_data();
-        // We need to get the station record and add to database if not already there
+        // Get the station record and add to database if not already there
         let station_record = station.get_station_record();
         info!("Station record: {:?}", station_record);
         let res = task::block_on(db.put_station_record(station_record));
